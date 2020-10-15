@@ -29,6 +29,7 @@ from pyspark.sql.functions import (abs as df_abs, col, count, countDistinct,
                                    max as df_max, mean, min as df_min,
                                    sum as df_sum, when
                                    )
+from datetime import datetime
 
 # Backwards compatibility with Spark 1.5:
 try:
@@ -508,7 +509,7 @@ def describe(df, bins, corr_reject, config, **kwargs):
 
 
 
-def to_html(sample, stats_object):
+def to_html(sample, stats_object, **kwargs):
 
     """
     Generate a HTML report from summary statistics and a given sample
@@ -612,6 +613,15 @@ def to_html(sample, stats_object):
     for idx, row in stats_object['variables'].iterrows():
 
         formatted_values = {'varname': idx, 'varid': hash(idx)}
+        # TODO: Add field metadata
+        if 'fields_metadata' in kwargs and idx in kwargs['fields_metadata']:
+            formatted_values['field_metadata'] = [
+                {'key': k, 'value': v}
+                for k, v in kwargs['fields_metadata'][idx].items()
+            ]
+        else:
+            formatted_values['field_metadata'] = []
+
         row_classes = {}
 
         for col, value in six.iteritems(row):
@@ -656,6 +666,20 @@ def to_html(sample, stats_object):
     # Overview
     formatted_values = {k: fmt(v, k) for k, v in six.iteritems(stats_object['table'])}
 
+    # Add file metadata like name, path, description, domain and subdomain
+    if 'file_metadata' in kwargs:
+        formatted_values['file_metadata'] = [
+            {'key': k, 'value': fmt(v, k)}
+            for k, v in kwargs['file_metadata'].items()
+        ]
+    else:
+        formatted_values['file_metadata'] = []
+    
+    formatted_values['file_metadata'].insert(0, {
+        'key': 'profiling_date',
+        'value': datetime.today().strftime('%d/%m/%Y %H:%M:%S')
+    })
+
     row_classes={}
     for col in six.viewkeys(stats_object['table']) & six.viewkeys(row_formatters):
         row_classes[col] = row_formatters[col](stats_object['table'][col])
@@ -672,4 +696,9 @@ def to_html(sample, stats_object):
 
     sample_html = templates.template('sample').render(sample_table_html=sample.to_html(classes="sample"))
     # TODO: should be done in the template
-    return templates.template('base').render({'overview_html': overview_html, 'rows_html': rows_html, 'sample_html': sample_html})
+    return templates.template('base').render({
+        'overview_html': overview_html,
+        'rows_html': rows_html,
+        'sample_html': sample_html,
+        'file_name': fmt(kwargs['file_name'], None) if 'file_name' in kwargs else 'Overview'
+    })

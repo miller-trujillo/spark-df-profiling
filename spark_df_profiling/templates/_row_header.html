@@ -3,4 +3,9 @@
         <p class="h4">{{ values['varname'] }}<br/>
             <small>{{ vartype }}</small>
         </p>
+        {% for item in values['field_metadata'] %}
+            <p class="h5">{{ item['key'] }}<br/>
+                <small>item['value']</small>
+            </p>
+        {% endfor %}
     </div> 

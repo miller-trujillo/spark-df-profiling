@@ -1,5 +1,18 @@
 <div class="row variablerow">
     <div class="col-md-6 namecol">
+        <p class="h4">Profiling Metadata</p>
+        <table class="stats" style="margin-left: 1em;">
+            <tbody>
+            {% for item in values['file_metadata'] %}
+                <tr>
+                    <th>{{ item['key'] }}</th>
+                    <td>{{ item['value'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6 namecol">
         <p class="h4">Dataset info</p>
         <table class="stats" style="margin-left: 1em;">
             <tbody>
@@ -26,6 +39,8 @@
             </tbody>
         </table>
     </div>
+</div>
+<div class="row variablerow">
     <div class="col-md-6 namecol">
         <p class="h4">Variables types</p>
         <table class="stats" style="margin-left: 1em;">
@@ -53,6 +68,8 @@
             </tbody>
         </table>
     </div>
+</div>
+<div class="row variablerow">
     <div class="col-md-12" style="padding-left: 1em;">
         <p class="h4">Warnings</p>
         <ul class="list-unstyled">{{ messages }} </ul>

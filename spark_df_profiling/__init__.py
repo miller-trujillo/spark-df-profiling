@@ -19,7 +19,8 @@ class ProfileReport(object):
         description_set = describe(df, bins=bins, corr_reject=corr_reject, config=config, **kwargs)
 
         self.html = to_html(sample,
-                            description_set)
+                            description_set,
+                            **kwargs)
 
         self.description_set = description_set
 
