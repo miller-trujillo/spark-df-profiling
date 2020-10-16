@@ -27,7 +27,7 @@ import six
 from pyspark.sql import DataFrame as SparkDataFrame
 from pyspark.sql.functions import (abs as df_abs, col, count, countDistinct,
                                    max as df_max, mean, min as df_min,
-                                   sum as df_sum, when
+                                   sum as df_sum, when, isnan
                                    )
 from datetime import datetime
 
@@ -182,14 +182,14 @@ def describe(df, bins, corr_reject, config, **kwargs):
                                                        stddev(col(column)).alias("std"),
                                                        skewness(col(column)).alias("skewness"),
                                                        df_sum(col(column)).alias("sum"),
-                                                       count(col(column) == 0.0).alias('n_zeros')
+                                                       df_sum(when(col(column) == 0.0, 1).otherwise(0)).alias('n_zeros')
                                                        ).toPandas()
         else:
             stats_df = df.select(column).na.drop().agg(mean(col(column)).alias("mean"),
                                                        df_min(col(column)).alias("min"),
                                                        df_max(col(column)).alias("max"),
                                                        df_sum(col(column)).alias("sum"),
-                                                       count(col(column) == 0.0).alias('n_zeros')
+                                                       df_sum(when(col(column) == 0.0, 1).otherwise(0)).alias('n_zeros')
                                                        ).toPandas()
             stats_df["variance"] = df.select(column).na.drop().agg(variance_custom(col(column),
                                                                                    stats_df["mean"].iloc[0],
@@ -251,14 +251,14 @@ def describe(df, bins, corr_reject, config, **kwargs):
                                                        stddev(col(column)).alias("std"),
                                                        skewness(col(column)).alias("skewness"),
                                                        df_sum(col(column)).alias("sum"),
-                                                       count(col(column) == 0.0).alias('n_zeros')
+                                                       df_sum(when(col(column) == 0.0, 1).otherwise(0)).alias('n_zeros')
                                                        ).toPandas()
         else:
             stats_df = df.select(column).na.drop().agg(mean(col(column)).alias("mean"),
                                                        df_min(col(column)).alias("min"),
                                                        df_max(col(column)).alias("max"),
                                                        df_sum(col(column)).alias("sum"),
-                                                       count(col(column) == 0.0).alias('n_zeros')
+                                                       df_sum(when(col(column) == 0.0, 1).otherwise(0)).alias('n_zeros')
                                                        ).toPandas()
             stats_df["variance"] = df.select(column).na.drop().agg(variance_custom(col(column),
                                                                                    stats_df["mean"].iloc[0],
@@ -311,8 +311,8 @@ def describe(df, bins, corr_reject, config, **kwargs):
         return stats
 
     def describe_date_1d(df, column):
-        stats_df = df.select(column).na.drop().agg(df_min(col(column)).alias("min"),
-                                                   df_max(col(column)).alias("max")
+        stats_df = df.select(column).na.drop().agg(df_min(col(column)).cast("string").alias("min"),
+                                                   df_max(col(column)).cast("string").alias("max")
                                                   ).toPandas()
         stats = stats_df.iloc[0].copy()
         stats.name = column
@@ -320,11 +320,16 @@ def describe(df, bins, corr_reject, config, **kwargs):
         # Convert Pandas timestamp object to regular datetime:
         if isinstance(stats["max"], pd.Timestamp):
             stats = stats.astype(object)
-            stats["max"] = str(stats["max"].to_pydatetime())
-            stats["min"] = str(stats["min"].to_pydatetime())
+            stats["max"] = stats["max"]
+            stats["min"] = stats["min"]
+            # TODO: Convert to datetime
         # Range only got when type is date
         else:
-            stats["range"] = stats["max"] - stats["min"]
+            maxim = datetime.strptime(stats["max"], "%Y-%m-%d")
+            minim = datetime.strptime(stats["min"], "%Y-%m-%d")
+            stats["range"] = str(maxim - minim)
+            stats["max"] = maxim.strftime("%d/%m/%Y")
+            stats["min"] = minim.strftime("%d/%m/%Y")
         stats["type"] = "DATE"
         return stats
 
@@ -393,8 +398,10 @@ def describe(df, bins, corr_reject, config, **kwargs):
         if ("array" in column_type) or ("stuct" in column_type) or ("map" in column_type):
             raise NotImplementedError("Column {c} is of type {t} and cannot be analyzed".format(c=column, t=column_type))
 
-        results_data = df.select(countDistinct(col(column)).alias("distinct_count"),
-                                 count(col(column).isNotNull()).alias('count')).toPandas()
+        results_data = df.select(
+            countDistinct(col(column)).alias("distinct_count"),
+            df_sum(when(col(column).isNotNull(), 1).otherwise(0)).alias('count'),
+        ).toPandas()
         results_data["p_unique"] = results_data["distinct_count"] / float(results_data["count"])
         results_data["is_unique"] = results_data["distinct_count"] == nrows
         results_data["n_missing"] = nrows - results_data["count"]
@@ -485,9 +492,9 @@ def describe(df, bins, corr_reject, config, **kwargs):
     # General statistics
     table_stats["nvar"] = len(df.columns)
     table_stats["total_missing"] = float(variable_stats.loc["n_missing"].sum()) / (table_stats["n"] * table_stats["nvar"])
-    memsize = 0
-    table_stats['memsize'] = formatters.fmt_bytesize(memsize)
-    table_stats['recordsize'] = formatters.fmt_bytesize(memsize / table_stats['n'])
+    if memsize in kwargs:
+        table_stats['memsize'] = formatters.fmt_bytesize(kwargs["memsize"])
+        table_stats['recordsize'] = formatters.fmt_bytesize(kwargs["memsize"] / table_stats['n'])
     table_stats.update({k: 0 for k in ("NUM", "DATE", "CONST", "CAT", "UNIQUE", "CORR")})
     table_stats.update(dict(variable_stats.loc['type'].value_counts()))
     table_stats['REJECTED'] = table_stats['CONST'] + table_stats['CORR']

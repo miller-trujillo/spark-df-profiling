@@ -1,5 +1,5 @@
 <div class="row variablerow">
-    <div class="col-md-6 namecol">
+    <div class="col-md-12 namecol">
         <p class="h4">Profiling Metadata</p>
         <table class="stats" style="margin-left: 1em;">
             <tbody>
@@ -12,6 +12,8 @@
             </tbody>
         </table>
     </div>
+</div>
+<div class="row variablerow">
     <div class="col-md-6 namecol">
         <p class="h4">Dataset info</p>
         <table class="stats" style="margin-left: 1em;">
@@ -28,19 +30,19 @@
                 <th>Total Missing (%)</th>
                 <td>{{ values['total_missing'] }} </td>
             </tr>
-            <tr>
-                <th>Total size in memory</th>
-                <td>{{ values['memsize'] }} </td>
-            </tr>
-            <tr>
-                <th>Average record size in memory</th>
-                <td>{{ values['recordsize'] }} </td>
-            </tr>
+            {% if 'memsize' in values %}
+                <tr>
+                    <th>Total size in memory</th>
+                    <td>{{ values['memsize'] }} </td>
+                </tr>
+                <tr>
+                    <th>Average record size in memory</th>
+                    <td>{{ values['recordsize'] }} </td>
+                </tr>
+            {% endif %}            
             </tbody>
         </table>
     </div>
-</div>
-<div class="row variablerow">
     <div class="col-md-6 namecol">
         <p class="h4">Variables types</p>
         <table class="stats" style="margin-left: 1em;">

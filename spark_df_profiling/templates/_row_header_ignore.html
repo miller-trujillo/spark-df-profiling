@@ -1,11 +1,11 @@
 <div class="row variablerow ignore">
-    <div class="col-md-3 namecol">
+    <div class="col-md-4 namecol">
         <p class="h4"><s>{{ values['varname'] }}</s><br/>
             <small>{{ vartype }}</small>
         </p>
         {% for item in values['field_metadata'] %}
             <p class="h5">{{ item['key'] }}<br/>
-                <small>item['value']</small>
+                <small>{{ item['value'] }}</small>
             </p>
         {% endfor %}
     </div> 
