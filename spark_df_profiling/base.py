@@ -492,7 +492,7 @@ def describe(df, bins, corr_reject, config, **kwargs):
     # General statistics
     table_stats["nvar"] = len(df.columns)
     table_stats["total_missing"] = float(variable_stats.loc["n_missing"].sum()) / (table_stats["n"] * table_stats["nvar"])
-    if memsize in kwargs:
+    if "memsize" in kwargs:
         table_stats['memsize'] = formatters.fmt_bytesize(kwargs["memsize"])
         table_stats['recordsize'] = formatters.fmt_bytesize(kwargs["memsize"] / table_stats['n'])
     table_stats.update({k: 0 for k in ("NUM", "DATE", "CONST", "CAT", "UNIQUE", "CORR")})
